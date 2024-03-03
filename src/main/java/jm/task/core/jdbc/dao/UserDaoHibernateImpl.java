@@ -5,6 +5,7 @@ import jm.task.core.jdbc.util.Util;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
 
 import java.sql.Connection;
@@ -32,27 +33,30 @@ public class UserDaoHibernateImpl implements UserDao {
                 age INT
                 );
                 """;
-        try (Connection connection = Util.open();
-             Statement statement = connection.createStatement()) {
-            statement.execute(sql);
-            System.out.println("таблица создана");
-        } catch (SQLException e) {
-            System.out.println("Ошибка, таблица не создана");
-
+        Transaction transaction = null;
+        try (Session session = factory.getCurrentSession()) {
+            transaction = session.beginTransaction();
+            session.createNativeQuery(sql).executeUpdate();
+            System.out.println("Таблица создана");
+            transaction.commit();
+        } catch (HibernateException e) {
+            System.out.println("Ошибка в создании таблицы");
         }
+
     }
 
     @Override
     public void dropUsersTable() {
         String sql = """
-                DROP TABLE users;
-                        
+                DROP TABLE IF EXISTS users;
+                       
                 """;
-        try (Connection connection = Util.open();
-             Statement statement = connection.createStatement()) {
-            System.out.println("таблица удалена");
-            statement.execute(sql);
-        } catch (SQLException e) {
+        try (Session session = factory.getCurrentSession()) {
+            session.beginTransaction();
+            session.createNativeQuery(sql).executeUpdate();
+            System.out.println("Таблица удалена");
+            session.getTransaction().commit();
+        } catch (HibernateException e) {
             System.out.println("Ошибка, таблица не удалена");
         }
     }
